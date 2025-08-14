@@ -1,0 +1,42 @@
+# MCP Server Dependencies
+mcp==0.1.0  # Model Context Protocol SDK
+fastmcp==0.1.0  # Fast MCP implementation
+
+# API Clients
+requests==2.31.0  # HTTP client for API calls
+httpx==0.25.0  # Async HTTP client
+aiohttp==3.9.0  # Async HTTP framework
+
+# GitHub Integration
+PyGithub==2.1.1  # GitHub API client
+
+# YouTube Processing
+yt-dlp==2023.10.13  # YouTube video downloader
+openai-whisper==20231117  # Local transcription (optional)
+openai==1.3.0  # OpenAI API for transcription/summarization
+
+# Notion Integration
+notion-client==2.0.0  # Notion API client
+
+# Web Server & Webhooks
+fastapi==0.104.1  # Web framework for webhook endpoints
+uvicorn==0.24.0  # ASGI server
+pydantic==2.4.2  # Data validation
+
+# Utilities
+python-dotenv==1.0.0  # Environment variable management
+redis==5.0.1  # Caching and queue management
+celery==5.3.4  # Task queue for async processing
+loguru==0.7.2  # Better logging
+urllib3==2.0.7  # URL parsing utilities
+
+# Testing
+pytest==7.4.3  # Testing framework
+pytest-asyncio==0.21.1  # Async test support
+pytest-mock==3.12.0  # Mocking support
+responses==0.24.1  # Mock HTTP responses
+
+# Development
+black==23.11.0  # Code formatter
+ruff==0.1.5  # Linter
+mypy==1.7.0  # Type checking
