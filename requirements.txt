@@ -7,13 +7,14 @@ requests==2.31.0  # HTTP client for API calls
 httpx==0.25.0  # Async HTTP client
 aiohttp==3.9.0  # Async HTTP framework
 
-# GitHub Integration
-PyGithub==2.1.1  # GitHub API client
+# E2B Integration
+e2b==0.17.0  # E2B sandboxed code execution
 
 # YouTube Processing
 yt-dlp==2023.10.13  # YouTube video downloader
 openai-whisper==20231117  # Local transcription (optional)
 openai==1.3.0  # OpenAI API for transcription/summarization
+youtube-transcript-api==0.6.1  # YouTube captions API
 
 # Notion Integration
 notion-client==2.0.0  # Notion API client
