@@ -1,0 +1,58 @@
+1. Access, research, and build a context library for the mcp server and n8n implementation of tweetsmash along with notion integration. 
+
+2. commit this to memory: @https://www.tweetsmash.com/api-docs
+
+3. construct this MCP server
+
+
+can you add this to the instructions set as we begin to map out his workflow: 
+
+Of course. Here is a proposed digital pipeline that translates your handwritten flowchart into a functional, automated workflow.
+
+This pipeline automates the processing of your Twitter bookmarks from Tweetsmash by analyzing the content and routing it to the appropriate service for action.
+
+***
+
+## Proposed Automation Pipeline
+
+This pipeline can be built using an automation platform like **n8n** (which you mentioned), Zapier, or Make.com. The logic would flow as follows:
+
+### **Step 1: Trigger**
+The workflow starts when a **new item is added to Tweetsmash**. This can be achieved by having Tweetsmash send a webhook to your automation platform or by having the platform poll Tweetsmash's API or RSS feed every few minutes.
+
+* **Input:** The full data of the bookmarked tweet, including the text and any URLs.
+
+### **Step 2: URL Extraction & Analysis**
+The first action is to parse the tweet's text to find the primary URL. Once extracted, the pipeline will analyze the URL's domain to determine the content type.
+
+### **Step 3: Conditional Routing (The "Router")**
+Using the URL, the workflow follows a conditional path, just like in your diagram.
+
+#### **Path A: Is it a GitHub Repo?**
+* **Condition:** If the URL contains `github.com`.
+* **Action:** An API call is made to the **GitHub API** to automatically create a new **Codespace** from that repository. This pre-builds a development environment for you to access later, saving you the manual setup time.
+
+#### **Path B: Is it a YouTube Video?**
+* **Condition:** If the URL contains `youtube.com` or `youtu.be`.
+* **Action:** The workflow executes a two-part process:
+    1.  **Transcribe:** The video's audio is sent to a transcription service (like OpenAI's Whisper API or AssemblyAI) to get a full text transcript.
+    2.  **Summarize:** The resulting transcript is then fed into an AI model (e.g., GPT-4, Claude, or Gemini) with a prompt like, "Summarize the key points and action items from this text." The summary is saved as notes.
+
+#### **Path C: Is it anything else?**
+* **Condition:** If the URL is not a link to GitHub or YouTube (e.g., a blog post, news article, or simple tweet).
+* **Action:** The original tweet data (text, URL, author) is forwarded to your **n8n server** via a webhook. A separate, dedicated n8n workflow then takes this data and uses the **Notion API** to create a new, properly formatted entry in your knowledge base.
+
+***
+
+## Technology Stack & Implementation
+
+Here's a summary of the tools needed to build this pipeline:
+
+* **Orchestration:** **n8n** (self-hosted or cloud) is ideal since you already specified it. It can handle the trigger, routing, and all API calls.
+* **GitHub Path:** Requires the **GitHub API**. You'll need to generate a personal access token with permissions to create Codespaces.
+* **YouTube Path:**
+    * **Transcription:** An API key for a service like **OpenAI's Whisper**.
+    * **Summarization:** An API key for an LLM provider like **OpenAI**, **Anthropic**, or **Google AI**.
+* **Other Content Path:** Your **n8n** instance will connect directly to the **Notion API** to create database entries.
+
+This entire process transforms your manual sorting of bookmarks into a powerful, automated system for managing knowledge and development tasks.
