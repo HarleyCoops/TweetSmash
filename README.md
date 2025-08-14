@@ -284,7 +284,11 @@ def synthesize(self, tweet_context: str, execution_results: dict) -> SynthesisRe
 
 6. **Run system tests**
    ```bash
+   # Verify API connections and configuration
    python test_system.py
+   
+   # Test the pipeline with validation data
+   python test_pipeline.py
    ```
 
 ### Detailed Configuration
@@ -327,26 +331,31 @@ services:
 
 ## Usage Examples
 
-### Basic Usage
+### Processing Real TweetSmash Bookmarks
+
+The system processes actual Twitter bookmarks that you've saved using TweetSmash. Here's how to work with real bookmarks:
 
 ```python
-from tweetsmash import TweetSmashClient
+# Fetch and process your latest bookmarks
+from mcp_server.tools.tweetsmash import fetch_bookmarks, process_bookmark_intelligent
 
-# Initialize client
-client = TweetSmashClient(api_key="your_api_key")
+# Get your recent bookmarks from TweetSmash
+bookmarks = await fetch_bookmarks(limit=10)
 
-# Process a single bookmark
-result = await client.process_bookmark("bookmark_id")
-
-# Process with custom configuration
-result = await client.process_bookmark(
-    "bookmark_id",
-    config={
-        "discovery_strategy": "aggressive",
-        "execution_strategy": "thorough",
-        "synthesis_style": "detailed"
-    }
-)
+# Process a specific bookmark through the pipeline
+for bookmark in bookmarks['bookmarks']:
+    result = await process_bookmark_intelligent(
+        bookmark_id=bookmark['post_id'],
+        config={
+            "discovery_strategy": "aggressive",  # Find repos aggressively
+            "execution_strategy": "thorough",    # Run comprehensive tests
+            "synthesis_style": "detailed"        # Generate detailed analysis
+        }
+    )
+    
+    print(f"Processed: {bookmark['tweet_details']['text'][:50]}...")
+    print(f"Found {len(result['agents']['github_discovery']['repositories'])} repos")
+    print(f"Notion URL: {result['notion_url']}")
 ```
 
 ### Advanced Pipeline Control
@@ -596,33 +605,56 @@ TweetSmash/
 │   ├── test_integration.py
 │   └── fixtures/
 ├── scripts/
-│   ├── test_pipeline.py       # End-to-end testing
-│   ├── test_system.py         # Configuration validation
-│   └── benchmark.py           # Performance testing
+│   ├── configure_cursor_mcp.ps1  # Cursor IDE MCP setup
+│   ├── setup_mcp_servers.ps1     # MCP server configuration
+│   └── test_n8n_workflow.ps1     # n8n workflow testing
 ├── n8n-workflows/             # Automation templates
 ├── docker-compose.yml         # Service orchestration
 ├── requirements.txt           # Python dependencies
 └── .env.example              # Configuration template
 ```
 
-### Running Tests
+### Testing the System
 
+#### System Validation
 ```bash
-# Unit tests
-pytest tests/
+# Test API connections and configuration
+python test_system.py
+```
+This verifies:
+- TweetSmash API connectivity
+- OpenAI/Anthropic API keys
+- GitHub token configuration
+- Redis connection
+- Notion integration
 
-# Integration tests
-pytest tests/test_integration.py -v
+#### Pipeline Testing
+```bash
+# Test the multi-agent pipeline
+python test_pipeline.py
+```
+This tests:
+- Content analysis agent with sample tweets
+- GitHub discovery strategies
+- Agent orchestration
+- Pipeline health checks
 
-# End-to-end pipeline test
-python scripts/test_pipeline.py
+#### Testing with Real Bookmarks
+```python
+# Test with your actual TweetSmash bookmarks
+from mcp_server.services.tweetsmash_api import TweetSmashAPI
 
-# Performance benchmarks
-python scripts/benchmark.py --iterations 100
+api = TweetSmashAPI()
+bookmarks = await api.fetch_bookmarks(limit=1)
 
-# Coverage report
-pytest --cov=mcp_server --cov-report=html
-open htmlcov/index.html
+# Process the most recent bookmark
+if bookmarks['bookmarks']:
+    bookmark = bookmarks['bookmarks'][0]
+    print(f"Processing: {bookmark['tweet_details']['text']}")
+    
+    from mcp_server.agents.orchestrator import AgentOrchestrator
+    orchestrator = AgentOrchestrator()
+    result = await orchestrator.process_bookmark(bookmark)
 ```
 
 ### Code Quality
