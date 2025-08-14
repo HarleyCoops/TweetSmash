@@ -1,0 +1,215 @@
+{
+  "name": "GitHub Processing Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-processor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "github-webhook",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "github-processor"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract GitHub URL from bookmark data\nconst bookmarkData = $input.all()[0].json;\nconst tweetText = bookmarkData.tweet_details?.text || '';\n\n// Extract GitHub URLs using regex\nconst githubUrlRegex = /https?:\\/\\/(www\\.)?github\\.com\\/[^\\s]+/g;\nconst urls = tweetText.match(githubUrlRegex) || [];\n\nif (urls.length === 0) {\n  throw new Error('No GitHub URLs found in bookmark');\n}\n\nconst primaryUrl = urls[0];\n\n// Parse repository info\nconst repoMatch = primaryUrl.match(/github\\.com\\/([^\\/]+)\\/([^\\/\\?#]+)/);\nif (!repoMatch) {\n  throw new Error('Invalid GitHub repository URL');\n}\n\nconst owner = repoMatch[1];\nconst repo = repoMatch[2];\n\nreturn {\n  bookmark_id: bookmarkData.post_id,\n  github_url: primaryUrl,\n  owner: owner,\n  repo: repo,\n  full_name: `${owner}/${repo}`,\n  tweet_author: bookmarkData.author_details?.name || 'Unknown',\n  tweet_text: tweetText\n};"
+      },
+      "id": "extract-github-info",
+      "name": "Extract GitHub Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{$json.full_name}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.githubToken}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        }
+      },
+      "id": "get-repo-info",
+      "name": "Get Repository Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{$json.full_name}}/codespaces",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.githubToken}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "machine",
+              "value": "basicLinux32gb"
+            },
+            {
+              "name": "display_name",
+              "value": "=TweetSmash-{{$json.name}}"
+            }
+          ]
+        }
+      },
+      "id": "create-codespace",
+      "name": "Create Codespace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{$credentials.notionWebhookUrl}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.notionToken}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "parent",
+              "value": "={\"database_id\": \"{{$credentials.notionDatabaseId}}\"}"
+            },
+            {
+              "name": "properties",
+              "value": "={\n  \"Name\": {\n    \"title\": [{\n      \"text\": {\n        \"content\": \"GitHub: \" + $json.name\n      }\n    }]\n  },\n  \"URL\": {\n    \"url\": $json.html_url\n  },\n  \"Tags\": {\n    \"multi_select\": [\n      {\"name\": \"github\"},\n      {\"name\": \"codespace\"},\n      {\"name\": \"repository\"}\n    ]\n  },\n  \"Source\": {\n    \"select\": {\n      \"name\": \"TweetSmash\"\n    }\n  }\n}"
+            },
+            {
+              "name": "children",
+              "value": "=[\n  {\n    \"object\": \"block\",\n    \"type\": \"bookmark\",\n    \"bookmark\": {\n      \"url\": $json.html_url\n    }\n  },\n  {\n    \"object\": \"block\",\n    \"type\": \"paragraph\",\n    \"paragraph\": {\n      \"rich_text\": [{\n        \"type\": \"text\",\n        \"text\": {\n          \"content\": \"Codespace created: \" + ($node[\"Create Codespace\"].json.web_url || \"Manual creation required\")\n        }\n      }]\n    }\n  }\n]"
+            }
+          ]
+        }
+      },
+      "id": "save-to-notion",
+      "name": "Save to Notion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"repository\": $json.full_name,\n  \"codespace_url\": $node[\"Create Codespace\"].json.web_url || \"Check GitHub for codespace\",\n  \"notion_page\": $node[\"Save to Notion\"].json.url || \"Saved to Notion\"\n}"
+      },
+      "id": "github-response",
+      "name": "GitHub Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract GitHub Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract GitHub Info": {
+      "main": [
+        [
+          {
+            "node": "Get Repository Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Repository Info": {
+      "main": [
+        [
+          {
+            "node": "Create Codespace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Codespace": {
+      "main": [
+        [
+          {
+            "node": "Save to Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Notion": {
+      "main": [
+        [
+          {
+            "node": "GitHub Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "meta": {
+    "instanceId": "github-processing-workflow"
+  },
+  "id": "2",
+  "tags": []
+}

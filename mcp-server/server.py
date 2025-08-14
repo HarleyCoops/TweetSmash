@@ -19,6 +19,7 @@ from tools.github import GitHubTools
 from tools.youtube import YouTubeTools
 from tools.notion import NotionTools
 from processors.router import ContentRouter
+from agents.orchestrator import AgentOrchestrator
 from utils.config import Config
 from utils.logger import setup_logger
 
@@ -36,6 +37,9 @@ class TweetSmashMCPServer:
         self.github_tools = GitHubTools(self.config)
         self.youtube_tools = YouTubeTools(self.config)
         self.notion_tools = NotionTools(self.config)
+        
+        # Initialize multi-agent pipeline
+        self.agent_orchestrator = AgentOrchestrator(self.config)
         
         self._setup_handlers()
     
@@ -102,8 +106,8 @@ class TweetSmashMCPServer:
                     }
                 ),
                 types.Tool(
-                    name="create_github_codespace",
-                    description="Create a GitHub Codespace from a repository URL",
+                    name="execute_github_repo",
+                    description="Clone and execute a GitHub repository using E2B sandbox",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -111,13 +115,36 @@ class TweetSmashMCPServer:
                                 "type": "string",
                                 "description": "GitHub repository URL"
                             },
-                            "machine_type": {
-                                "type": "string",
-                                "description": "Codespace machine type",
-                                "default": "basicLinux32gb"
+                            "auto_install": {
+                                "type": "boolean",
+                                "description": "Automatically install dependencies",
+                                "default": True
                             }
                         },
                         "required": ["repo_url"]
+                    }
+                ),
+                types.Tool(
+                    name="execute_code_snippet",
+                    description="Execute a code snippet in E2B sandbox",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Code to execute"
+                            },
+                            "language": {
+                                "type": "string",
+                                "description": "Programming language (python, javascript, etc.)",
+                                "default": "python"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Description of what the code does"
+                            }
+                        },
+                        "required": ["code"]
                     }
                 ),
                 types.Tool(
@@ -179,6 +206,77 @@ class TweetSmashMCPServer:
                             }
                         }
                     }
+                ),
+                types.Tool(
+                    name="process_bookmark_intelligent",
+                    description="Process bookmark using multi-agent pipeline for intelligent GitHub discovery and analysis",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "bookmark_id": {
+                                "type": "string",
+                                "description": "ID of the bookmark to process"
+                            },
+                            "bookmark_data": {
+                                "type": "object",
+                                "description": "Optional bookmark data (if not provided, will fetch from TweetSmash)",
+                                "required": False
+                            },
+                            "pipeline_config": {
+                                "type": "object",
+                                "description": "Pipeline configuration options",
+                                "properties": {
+                                    "discovery_strategy": {
+                                        "type": "string",
+                                        "enum": ["aggressive", "conservative"],
+                                        "description": "GitHub discovery strategy",
+                                        "default": "aggressive"
+                                    },
+                                    "execution_strategy": {
+                                        "type": "string", 
+                                        "enum": ["quick", "thorough"],
+                                        "description": "Code execution strategy",
+                                        "default": "quick"
+                                    },
+                                    "synthesis_style": {
+                                        "type": "string",
+                                        "enum": ["detailed", "summary", "actionable"],
+                                        "description": "Content synthesis style",
+                                        "default": "detailed"
+                                    },
+                                    "max_repositories": {
+                                        "type": "integer",
+                                        "description": "Maximum repositories to execute",
+                                        "default": 3
+                                    }
+                                },
+                                "required": False
+                            }
+                        },
+                        "required": ["bookmark_id"]
+                    }
+                ),
+                types.Tool(
+                    name="get_pipeline_status",
+                    description="Get status of the multi-agent pipeline",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {}
+                    }
+                ),
+                types.Tool(
+                    name="test_pipeline",
+                    description="Test the multi-agent pipeline with sample data",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "test_bookmark": {
+                                "type": "object",
+                                "description": "Optional test bookmark data",
+                                "required": False
+                            }
+                        }
+                    }
                 )
             ])
             
@@ -208,10 +306,15 @@ class TweetSmashMCPServer:
                 elif name == "analyze_url":
                     result = await self.router.analyze_url(arguments["url"])
                 
-                elif name == "create_github_codespace":
+                elif name == "execute_github_repo":
                     result = await self.github_tools.create_codespace(
-                        repo_url=arguments["repo_url"],
-                        machine_type=arguments.get("machine_type", "basicLinux32gb")
+                        repo_url=arguments["repo_url"]
+                    )
+                
+                elif name == "execute_code_snippet":
+                    result = await self.github_tools.execute_code_snippet(
+                        code=arguments["code"],
+                        language=arguments.get("language", "python")
                     )
                 
                 elif name == "transcribe_youtube":
@@ -231,6 +334,31 @@ class TweetSmashMCPServer:
                 elif name == "get_processing_status":
                     result = await self.router.get_job_status(
                         job_id=arguments.get("job_id")
+                    )
+                
+                elif name == "process_bookmark_intelligent":
+                    # Get bookmark data if not provided
+                    bookmark_data = arguments.get("bookmark_data")
+                    if not bookmark_data:
+                        bookmark_result = await self.tweetsmash_tools.get_bookmark_details(
+                            arguments["bookmark_id"]
+                        )
+                        if not bookmark_result.get("success"):
+                            raise ValueError(f"Failed to fetch bookmark: {bookmark_result.get('error')}")
+                        bookmark_data = bookmark_result.get("bookmark")
+                    
+                    # Process through multi-agent pipeline
+                    result = await self.agent_orchestrator.process_bookmark(
+                        bookmark_data,
+                        arguments.get("pipeline_config")
+                    )
+                
+                elif name == "get_pipeline_status":
+                    result = await self.agent_orchestrator.get_pipeline_status()
+                
+                elif name == "test_pipeline":
+                    result = await self.agent_orchestrator.test_pipeline(
+                        arguments.get("test_bookmark")
                     )
                 
                 else:
