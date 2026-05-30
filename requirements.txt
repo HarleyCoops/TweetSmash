@@ -5,7 +5,7 @@ fastmcp==0.1.0  # Fast MCP implementation
 # API Clients
 requests==2.31.0  # HTTP client for API calls
 httpx==0.25.0  # Async HTTP client
-aiohttp==3.9.0  # Async HTTP framework
+aiohttp==3.13.4  # Async HTTP framework
 
 # E2B Integration
 e2b==0.17.0  # E2B sandboxed code execution
