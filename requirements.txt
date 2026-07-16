@@ -3,7 +3,7 @@ mcp==0.1.0  # Model Context Protocol SDK
 fastmcp==0.1.0  # Fast MCP implementation
 
 # API Clients
-requests==2.31.0  # HTTP client for API calls
+requests==2.33.0  # HTTP client for API calls
 httpx==0.25.0  # Async HTTP client
 aiohttp==3.13.4  # Async HTTP framework
 
