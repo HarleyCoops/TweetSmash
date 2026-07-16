@@ -1,5 +1,5 @@
 # MCP Server Dependencies
-mcp==0.1.0  # Model Context Protocol SDK
+mcp==1.27.2  # Model Context Protocol SDK
 fastmcp==0.1.0  # Fast MCP implementation
 
 # API Clients
