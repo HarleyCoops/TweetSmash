@@ -25,7 +25,7 @@ uvicorn==0.24.0  # ASGI server
 pydantic==2.4.2  # Data validation
 
 # Utilities
-python-dotenv==1.0.0  # Environment variable management
+python-dotenv==1.2.2  # Environment variable management
 redis==5.0.1  # Caching and queue management
 celery==5.3.4  # Task queue for async processing
 loguru==0.7.2  # Better logging
