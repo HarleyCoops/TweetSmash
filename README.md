@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/harleycoops-tweetsmash-badge.png)](https://mseep.ai/app/harleycoops-tweetsmash)
+
 # TweetSmash: Intelligent Multi-Agent Bookmark Processing System
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
