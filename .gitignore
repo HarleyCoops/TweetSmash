@@ -114,3 +114,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+# Environment files may contain credentials
+.env.*
+!.env.example
+!.env.sample
+!.env.template
