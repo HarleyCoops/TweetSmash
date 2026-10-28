@@ -38,6 +38,6 @@ pytest-mock==3.15.1  # Mocking support
 responses==0.26.2  # Mock HTTP responses
 
 # Development
-black==26.5.1  # Code formatter
+black==26.10.1  # Code formatter
 ruff==0.15.22  # Linter
 mypy==2.3.0  # Type checking
